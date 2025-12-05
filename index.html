@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>OPTIMIZADOR DE MOLIENDA</title>
+    <link rel="stylesheet" href="./style.css">
+
+  </head>
+    
+  <body>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<button id="theme-toggle" class="theme-toggle-btn" aria-label="Cambiar modo oscuro">
+    <span class="theme-icon">🌙</span>
+</button>
+
+<div class="main-container">
+    
+    <div class="left-panel">
+        <h2>Parámetros del Equipo</h2>
+        <p class="instruction-text">Edita los valores sobre la imagen:</p>
+
+        <div class="mill-viz">
+            <img src="https://i.postimg.cc/C1Gw2dY9/Daswell-ball-mill-plant.jpg" 
+                 alt="Diagrama Molino" 
+                 class="mill-static-img">
+
+            <div class="overlay-input motor-pos">
+                <div class="pointer-dot"></div>
+                <label>Velocidad (v)</label>
+                <div class="input-wrapper-mini">
+                    <input type="number" id="v" value="18" step="0.1" oninput="window.calculateAll()">
+                    <span class="unit-mini">RPM</span>
+                </div>
+            </div>
+
+            <div class="overlay-input cylinder-pos">
+                <div class="pointer-dot"></div>
+                <label>Diámetro (D)</label>
+                <div class="input-wrapper-mini">
+                    <input type="number" id="d" value="2.9" step="0.1" oninput="window.calculateAll()">
+                    <span class="unit-mini">m</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="critical-speed-section">
+            <h3 class="section-title">Velocidad Crítica (Nc)</h3>
+            
+            <div class="nc-tabs-nav">
+                <button class="nc-tab-btn active" onclick="window.setNcFactor(1.0)" id="btn-nc-100">100% (Límite)</button>
+                <button class="nc-tab-btn" onclick="window.setNcFactor(0.8)" id="btn-nc-80">80% (Catarata)</button>
+                <button class="nc-tab-btn" onclick="window.setNcFactor(0.7)" id="btn-nc-70">70% (Cascada)</button>
+            </div>
+
+            <div class="nc-grid">
+                <div class="nc-card">
+                    <span class="nc-label">Con Bola Teórica</span>
+                    <span id="nc-theo-val" class="nc-value">0.0 RPM</span>
+                </div>
+                <div class="nc-card real-nc-card">
+                    <span class="nc-label real-nc-label">Con Bola Real</span>
+                    <span id="nc-real-val" class="nc-value real-nc-value">0.0 RPM</span>
+                </div>
+            </div>
+            
+            <p class="note-text" id="nc-note-text">Mostrando valores al 100% de la Velocidad Crítica.</p>
+        </div>
+    </div>
+
+    <div class="right-panel">
+
+        <div>
+            <div class="tabs-nav">
+                <button class="tab-btn active" id="tab-manual" onclick="window.setWiMode('manual')">Ingresar Wi Manual</button>
+                <button class="tab-btn" id="tab-calc" onclick="window.setWiMode('calc')">Calcular Wi (Bond)</button>
+            </div>
+
+            <div id="mode-manual" class="grid-2">
+                <div class="input-group">
+                    <label>Work Index (Wi)</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="wi-manual" value="14.65" step="0.1" oninput="window.calculateAll()">
+                        <span class="unit">kWh/t</span>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>F80 Alimentación</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="f80-manual" value="10077" oninput="window.calculateAll()">
+                        <span class="unit">μm</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="mode-calc" class="hidden">
+                <div class="grid-2">
+                    <div class="input-group">
+                        <label>Consumo Energía (W)</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="bond-w" value="10.83" step="0.01" oninput="window.calculateAll()">
+                            <span class="unit">kWh/t</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>F80 Alimentación</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="f80-calc" value="10077" oninput="window.calculateAll()">
+                            <span class="unit">μm</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>P80 Producto</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="bond-p80" value="298" oninput="window.calculateAll()">
+                            <span class="unit">μm</span>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Wi Calculado</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="wi-calculated-result" disabled class="disabled-input">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="separator"></div>
+
+        <h2>Resultados (Fórmula Azzaroni)</h2>
+        
+        <div class="results-grid">
+            <div class="result-card">
+                <div class="res-title">Tamaño de Bola Teórico</div>
+                <div>
+                    <span id="db-theoretical" class="res-number">0.00</span><span class="res-unit">"</span>
+                </div>
+                <span id="db-theoretical-mm" class="res-sub">0.00 mm</span>
+            </div>
+
+            <div class="result-card">
+                <div class="res-title">Tamaño de Bola Real</div>
+                <div style="display:flex; justify-content:center; align-items:baseline;">
+                    <input type="number" id="db-real" value="3.5" step="0.1" class="real-val-input" oninput="window.calculateAll()">
+                    <span class="res-unit">"</span>
+                </div>
+                <span class="res-sub">Modificable</span>
+            </div>
+        </div>
+
+        <div class="status-container">
+            <div class="status-dot" id="status-dot"></div>
+            <span id="efficiency-msg">Calculando estado...</span>
+        </div>
+
+        <div class="chart-section-wrapper">
+            <div class="chart-type-tabs">
+                <button class="chart-tab active" onclick="window.setChartMode('azzaroni')" id="chart-btn-azzaroni">
+                    📊 Fórmula Azzaroni
+                </button>
+                <button class="chart-tab" onclick="window.setChartMode('speed')" id="chart-btn-speed">
+                    ⚡ Velocidad Crítica
+                </button>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="mainChart"></canvas>
+            </div>
+        </div>
+
+        <button class="btn-report" onclick="window.generateReport()">
+            📄 Generar Reporte
+        </button>
+
+    </div>
+</div>
+
+<div id="report-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Reporte de Optimización de Molienda</h2>
+            <button class="close-btn" onclick="window.closeReport()">×</button>
+        </div>
+        
+        <div class="modal-body">
+            <div class="report-section">
+                <h3>1. Resumen de Variables</h3>
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th colspan="2">Entradas (Inputs)</th>
+                            <th colspan="2">Resultados (Outputs)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="report-table-body">
+                        </tbody>
+                </table>
+            </div>
+
+            <div class="report-section">
+                <h3>2. Análisis Gráfico</h3>
+                <div class="report-charts-grid">
+                    <div class="report-chart-box">
+                        <h4>Curva Azzaroni (Tamaño de Bola)</h4>
+                        <div class="chart-container-mini">
+                            <canvas id="reportChartAzzaroni"></canvas>
+                        </div>
+                    </div>
+                    <div class="report-chart-box">
+                        <h4>Curva Velocidad Crítica</h4>
+                        <div class="chart-container-mini">
+                            <canvas id="reportChartSpeed"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="print-footer" style="display:none; text-align:center; font-size:0.8rem; color:#999; margin-top:20px;">
+                Generado por Calculadora Azzaroni & Bond
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-print" onclick="window.print()">🖨️ Imprimir Reporte</button>
+            <button class="btn-secondary" onclick="window.closeReport()">Cerrar</button>
+        </div>
+    </div>
+</div>
+    <script  src="./script.js"></script>
+
+  </body>
+  
+</html>

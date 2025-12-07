@@ -64,6 +64,10 @@
                     <span id="nc-real-val" class="nc-value real-nc-value">0.0 RPM</span>
                 </div>
             </div>
+
+            <div id="nc-status-container" class="nc-status">
+                Calculando desviación...
+            </div>
             
             <p class="note-text" id="nc-note-text">Mostrando valores al 100% de la Velocidad Crítica.</p>
         </div>
@@ -119,8 +123,8 @@
                     </div>
                     <div class="input-group">
                         <label>Wi Calculado</label>
-                        <div class="input-wrapper">
-                            <input type="text" id="wi-calculated-result" disabled class="disabled-input">
+                        <div class="input-wrapper result-highlight">
+                            <input type="text" id="wi-calculated-result" disabled value="0.00">
                         </div>
                     </div>
                 </div>
@@ -201,6 +205,7 @@
 
             <div class="report-section">
                 <h3>2. Análisis Gráfico</h3>
+                
                 <div class="report-charts-grid">
                     <div class="report-chart-box">
                         <h4>Curva Azzaroni (Tamaño de Bola)</h4>
@@ -217,13 +222,13 @@
                 </div>
             </div>
             
-            <div class="print-footer" style="display:none; text-align:center; font-size:0.8rem; color:#999; margin-top:20px;">
+            <div class="print-footer" style="display:none; margin-top:20px; text-align:center; font-size:0.8rem; color:#666;">
                 Generado por Calculadora Azzaroni & Bond
             </div>
         </div>
 
         <div class="modal-footer">
-            <button class="btn-print" onclick="window.print()">🖨️ Imprimir Reporte</button>
+            <button class="btn-print" onclick="window.print()">🖨️ Imprimir</button>
             <button class="btn-secondary" onclick="window.closeReport()">Cerrar</button>
         </div>
     </div>

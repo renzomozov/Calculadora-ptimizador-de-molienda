@@ -1,5 +1,6 @@
 window.addEventListener('load', function() {
     
+    // --- VARIABLES GLOBALES ---
     let currentWiMode = 'manual';
     let currentChartMode = 'azzaroni';
     let currentNcFactor = 1.0; 
@@ -7,6 +8,7 @@ window.addEventListener('load', function() {
     let reportChart1 = null;
     let reportChart2 = null;
 
+    // --- CONFIGURACIÓN TEMA ---
     const toggleBtn = document.getElementById('theme-toggle');
     const themeIcon = toggleBtn.querySelector('.theme-icon');
 
@@ -29,12 +31,16 @@ window.addEventListener('load', function() {
         calculateAll();
     });
 
+    // Configuración base Chart.js
     Chart.defaults.font.family = "'Inter', sans-serif";
 
+    // Listeners Inputs
     const inputs = document.querySelectorAll('input');
     inputs.forEach(input => {
         input.addEventListener('input', calculateAll);
     });
+
+    // --- FUNCIONES GLOBALES ---
 
     window.setWiMode = function(mode) {
         currentWiMode = mode;
@@ -69,8 +75,9 @@ window.addEventListener('load', function() {
         document.querySelector('.print-footer').style.display = 'none';
     }
 
-    // --- GENERAR REPORTE ---
+    // --- GENERAR REPORTE (MODIFICADO) ---
     window.generateReport = function() {
+        // Recoger datos
         let v = parseFloat(document.getElementById('v').value);
         let D = parseFloat(document.getElementById('d').value);
         let db_real = parseFloat(document.getElementById('db-real').value);
@@ -84,6 +91,7 @@ window.addEventListener('load', function() {
             F80 = parseFloat(document.getElementById('f80-calc').value);
         }
 
+        // Recalcular para el reporte
         let numerator = 6.3 * Math.pow(F80, 0.29) * Math.pow(Wi, 0.4);
         let denominator = Math.pow((v * D), 0.25);
         let db_in_theo = (numerator / denominator) / 25.4;
@@ -94,31 +102,61 @@ window.addEventListener('load', function() {
         let nc_theo = (76.6 / Math.sqrt(D_ft - d_ft_theo)) * currentNcFactor;
         let nc_real = (76.6 / Math.sqrt(D_ft - d_ft_real)) * currentNcFactor;
 
+        // Calcular error bola
+        let errorPercent = ((db_real - db_in_theo) / db_in_theo) * 100;
+        let errorLabel = "";
+        let errorClass = "";
+        if (Math.abs(errorPercent) < 5) errorLabel = `Óptimo (${errorPercent.toFixed(2)}%)`;
+        else if (errorPercent > 0) errorLabel = `Sobredimensionado (+${errorPercent.toFixed(2)}%)`;
+        else errorLabel = `Subdimensionado (${errorPercent.toFixed(2)}%)`;
+
+        // Llenar tabla
         let tbody = document.getElementById('report-table-body');
         tbody.innerHTML = `
-            <tr><td>Work Index (Wi)</td><td>${Wi.toFixed(2)} kWh/t</td> <td>Bola Teórica</td><td>${db_in_theo.toFixed(2)}"</td></tr>
-            <tr><td>F80</td><td>${F80} μm</td> <td>Bola Real</td><td>${db_real.toFixed(2)}"</td></tr>
-            <tr><td>Velocidad (v)</td><td>${v} RPM</td> <td>Nc Teórico (${(currentNcFactor*100).toFixed(0)}%)</td><td>${nc_theo.toFixed(1)} RPM</td></tr>
-            <tr><td>Diámetro (D)</td><td>${D} m</td> <td>Nc Real (${(currentNcFactor*100).toFixed(0)}%)</td><td>${nc_real.toFixed(1)} RPM</td></tr>
+            <tr>
+                <td>Work Index (Wi)</td>
+                <td>${Wi.toFixed(2)} kWh/t</td> 
+                <td>Bola Teórica</td>
+                <td>${db_in_theo.toFixed(2)}"</td>
+            </tr>
+            <tr>
+                <td>F80</td>
+                <td>${F80} μm</td> 
+                <td>Bola Real</td>
+                <td>${db_real.toFixed(2)}"</td>
+            </tr>
+            <tr>
+                <td>Velocidad (v)</td>
+                <td>${v} RPM</td> 
+                <td><strong>Error Bola</strong></td>
+                <td><strong>${errorLabel}</strong></td>
+            </tr>
+            <tr>
+                <td>Diámetro (D)</td>
+                <td>${D} m</td> 
+                <td>Nc Real (${(currentNcFactor*100).toFixed(0)}%)</td>
+                <td>${nc_real.toFixed(1)} RPM</td>
+            </tr>
         `;
 
-        // MOSTRAR MODAL
+        // Mostrar Modal
         document.getElementById('report-modal').classList.remove('hidden');
         document.querySelector('.print-footer').style.display = 'block';
 
-        // Determinar colores para el reporte (usamos un gris neutro oscuro para impresión limpia)
-        const isDark = document.body.getAttribute('data-theme') === 'dark';
-        const labelColor = isDark ? '#94a3b8' : '#1f2937';
-        const gridColor = isDark ? '#334155' : '#e5e7eb';
-        const primaryColor = isDark ? '#60a5fa' : '#558b6e';
+        // Configurar colores para reporte (usar gris oscuro para impresión limpia)
+        const textColor = '#1f2937';
+        const gridColor = '#e5e7eb';
+        const primaryColor = '#558b6e';
 
+        // Destruir gráficos viejos del reporte y crear nuevos
         if (reportChart1) reportChart1.destroy();
         let ctx1 = document.getElementById('reportChartAzzaroni').getContext('2d');
-        reportChart1 = new Chart(ctx1, getChartConfig('azzaroni', F80, Wi, v, D, db_in_theo, db_real, nc_theo, nc_real, false, labelColor, gridColor, primaryColor));
+        // enableAnimation = false para que se vean al imprimir
+        reportChart1 = new Chart(ctx1, getChartConfig('azzaroni', F80, Wi, v, D, db_in_theo, db_real, nc_theo, nc_real, false, textColor, gridColor, primaryColor));
 
         if (reportChart2) reportChart2.destroy();
         let ctx2 = document.getElementById('reportChartSpeed').getContext('2d');
-        reportChart2 = new Chart(ctx2, getChartConfig('speed', F80, Wi, v, D, db_in_theo, db_real, nc_theo, nc_real, false, labelColor, gridColor, primaryColor));
+        reportChart2 = new Chart(ctx2, getChartConfig('speed', F80, Wi, v, D, db_in_theo, db_real, nc_theo, nc_real, false, textColor, gridColor, primaryColor));
     }
 
     // --- FUNCIÓN DE CÁLCULO PRINCIPAL ---
@@ -176,8 +214,30 @@ window.addEventListener('load', function() {
         document.getElementById('nc-theo-val').innerText = nc_theo_display.toFixed(1) + " RPM";
         document.getElementById('nc-real-val').innerText = nc_real_display.toFixed(1) + " RPM";
 
+        // CALCULO ERROR NC
+        updateNcStatus(nc_theo_display, nc_real_display);
+
         updateStatus(db_in_theo, db_real_inch);
         updateChart(F80, Wi, v, D_meters, db_in_theo, db_real_inch, nc_theo_display, nc_real_display, primaryColor);
+    }
+
+    function updateNcStatus(theo, real) {
+        let diffPercent = ((real - theo) / theo) * 100;
+        let msg = "", color = "", border = "", bg = "";
+
+        if (Math.abs(diffPercent) < 0.5) {
+            msg = "✓ Velocidades alineadas"; color = "#10b981"; border = "rgba(16, 185, 129, 0.3)"; bg = "rgba(16, 185, 129, 0.1)";
+        } else if (diffPercent > 0) {
+            msg = `⚠ Nc Real mayor (+${diffPercent.toFixed(2)}%)`; color = "#e67e22"; border = "rgba(230, 126, 34, 0.3)"; bg = "rgba(230, 126, 34, 0.1)";
+        } else {
+            msg = `⚠ Nc Real menor (${diffPercent.toFixed(2)}%)`; color = "#ef4444"; border = "rgba(239, 68, 68, 0.3)"; bg = "rgba(239, 68, 68, 0.1)";
+        }
+
+        const ncStatusDiv = document.getElementById('nc-status-container');
+        ncStatusDiv.innerText = msg;
+        ncStatusDiv.style.color = color;
+        ncStatusDiv.style.borderColor = border;
+        ncStatusDiv.style.backgroundColor = bg;
     }
 
     function updateStatus(teorico, real) {
@@ -204,15 +264,15 @@ window.addEventListener('load', function() {
     }
 
     function getChartConfig(type, F80, Wi, v, D_meters, db_theo, db_real, nc_theo, nc_real, enableAnimation = true, forceLabel = null, forceGrid = null, forcePrimary = null) {
+        let labels = [], datasets = [], xTitle = "", yTitle = "";
         
         const isDark = document.body.getAttribute('data-theme') === 'dark';
-        
         const labelColor = forceLabel || (isDark ? '#94a3b8' : '#1f2937');
-        const gridColor = forceGrid || (isDark ? '#334155' : '#e5e7eb');
-        const pointColor = forcePrimary || (isDark ? '#60a5fa' : '#558b6e'); 
-        const curveColor = isDark ? '#cbd5e1' : '#111827'; 
+        const gridLineColor = forceGrid || (isDark ? '#334155' : '#e5e7eb');
+        const lineColor = isDark ? '#d1d5db' : '#111827'; 
+        const primaryPointColor = forcePrimary || (isDark ? '#60a5fa' : '#558b6e');
 
-        let labels = [], datasets = [], xTitle = "", yTitle = "";
+        const effectiveLineColor = forceLabel ? '#111827' : lineColor; // Si forzamos label (impresion), forzamos linea oscura
 
         if (type === 'azzaroni') {
             xTitle = "F80 (Alimentación μm)";
@@ -227,9 +287,9 @@ window.addEventListener('load', function() {
                 dataCurve.push(y_in);
             }
             datasets = [
-                { label: 'Curva Azzaroni', data: dataCurve, borderColor: curveColor, borderWidth: 2, pointRadius: 0, tension: 0.4, borderDash: [5, 5] },
+                { label: 'Curva Azzaroni', data: dataCurve, borderColor: effectiveLineColor, borderWidth: 2, pointRadius: 0, tension: 0.4, borderDash: [5, 5] },
                 { label: 'Real', data: [{x: F80, y: db_real}], backgroundColor: '#e74c3c', pointRadius: 6, type: 'scatter' },
-                { label: 'Teórico', data: [{x: F80, y: db_theo}], backgroundColor: pointColor, pointRadius: 6, type: 'scatter' }
+                { label: 'Teórico', data: [{x: F80, y: db_theo}], backgroundColor: primaryPointColor, pointRadius: 6, type: 'scatter' }
             ];
         } else {
             xTitle = "Diámetro de Bola (pulg)";
@@ -245,9 +305,9 @@ window.addEventListener('load', function() {
             }
             datasets = [
                 { label: `Curva Nc (${(currentNcFactor*100).toFixed(0)}%)`, data: dataNcCurve, borderColor: '#e67e22', borderWidth: 2, tension: 0.4 },
-                { label: 'Velocidad Actual', data: dataOper, borderColor: curveColor, borderWidth: 1, borderDash: [2, 2], pointRadius: 0 },
+                { label: 'Velocidad Actual', data: dataOper, borderColor: effectiveLineColor, borderWidth: 1, borderDash: [2, 2], pointRadius: 0 },
                 { label: 'Real', data: [{x: db_real, y: nc_real}], backgroundColor: '#e74c3c', pointRadius: 8, pointStyle: 'triangle', type: 'scatter' },
-                { label: 'Teórico', data: [{x: db_theo, y: nc_theo}], backgroundColor: pointColor, pointRadius: 8, pointStyle: 'rectRot', type: 'scatter' }
+                { label: 'Teórico', data: [{x: db_theo, y: nc_theo}], backgroundColor: primaryPointColor, pointRadius: 8, pointStyle: 'rectRot', type: 'scatter' }
             ];
         }
 
@@ -272,12 +332,12 @@ window.addEventListener('load', function() {
                         title: { display: true, text: xTitle, color: labelColor },
                         min: labels[0], 
                         max: labels[labels.length-1],
-                        grid: { color: gridColor },
+                        grid: { color: gridLineColor },
                         ticks: { color: labelColor }
                     },
                     y: { 
                         title: { display: true, text: yTitle, color: labelColor }, 
-                        grid: { color: gridColor },
+                        grid: { color: gridLineColor },
                         ticks: { color: labelColor }
                     }
                 }
